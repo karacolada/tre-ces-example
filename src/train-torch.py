@@ -9,6 +9,10 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils, models
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
+DATA_JSON = os.environ.get("DATA_JSON", "../data/train.json")
+DATA_IMAGES_DIR = os.environ.get("DATA_IMAGES", "../data/train")
+TRAIN_OUTPUT_DIR = os.environ.get("TRAIN_OUTPUT", ".")
+
 class Fathom24Dataset(Dataset):
     """Fathom2024 dataset."""
 
@@ -121,8 +125,8 @@ def get_model_instance_segmentation(num_classes):
     return model
 
 if __name__ == "__main__":
-    transformed_f24_dataset = Fathom24Dataset(json_file="../data/train.json",
-                                              root_dir="../data/train",
+    transformed_f24_dataset = Fathom24Dataset(json_file=DATA_JSON,
+                                              root_dir=DATA_IMAGES_DIR,
                                               transform=transforms.Compose([
                                                 Rescale((256, 256)),
                                                 ToTensor()
@@ -140,6 +144,14 @@ if __name__ == "__main__":
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
 
+    # log file
+    log_f = open(os.path.join(TRAIN_OUTPUT_DIR, "log"), "w")
+    log_f.write("####################### Device #######################\n")
+    log_f.write(f"{device}\n")
+    log_f.write("######################################################\n")
+
+    log_f.write("\n\n###################### Training ######################\n")
+
     len_dataloader = len(data_loader)
     for epoch in range(num_epochs):
         model.train()
@@ -155,4 +167,11 @@ if __name__ == "__main__":
             losses.backward()
             optimizer.step()
 
-            print(f'Iteration: {i}/{len_dataloader}, Loss: {losses}')
+            #print(f'Iteration: {i}/{len_dataloader}, Loss: {losses}')
+            log_f.write(f'Iteration: {i}/{len_dataloader}, Loss: {losses}\n')
+    
+    log_f.write("######################################################\n")
+    log_f.close()
+
+    # save trained model
+    torch.save(model.state_dict(), os.path.join(TRAIN_OUTPUT_DIR, "fathom24_trained_model.pth"))
