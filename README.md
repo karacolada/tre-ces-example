@@ -1,5 +1,16 @@
 # tre-ces
-Containers for testing the TRE Container Execution Service
+Containers for testing the TRE Container Execution Service.
+
+Use case: Training an object detection model for the [Fathom24 Kaggle competition](https://www.kaggle.com/competitions/fathomnet2024).
+- containerising data [`docker/data`](./docker/data/)
+- containerising pre-built models (:construction: TODO)
+- containerising training scripts with different starting points
+  - NVIDIA PyTorch image [`docker/nv-pyt`](./docker/nv-pyt/)
+  - PyTorch image [`docker/pyt`](./docker/pyt/)
+  - Python image [`docker/piped-pyt`](./docker/piped-pyt/)
+  - Tensorflow image (:construction: TODO)
+
+:construction: GH actions will be used for CI/CD. In the meantime, build locally and push to this repository's CR instead, as described below.
 
 ## Local build and push
 

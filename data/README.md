@@ -5,6 +5,8 @@ See https://www.kaggle.com/competitions/fathomnet2024
 - `eval` took 7 minutes to download, and stands at 5.4G (2686 images)
 - `train` took 18 minutes to download, and stands at 17G (8058 images)
 
+Text below is taken from https://www.kaggle.com/competitions/fathomnet2024/data
+
 ## Dataset Description
 
 The training and test images for the competition were all collected in the Monterey Bay Area between the surface and 1300 meters depth. The images contain bounding box annotations of 18 morphotaxonomic (i.e. semantic) categories of bottom dwelling animals. The training and test data come from the same 0-1300 meter range. Training images only have annotations for the 18 base supercategories. Test images contain those 18 categories and two new ones. Critically, there might be unannotated examples of the new classes in the training data. This is a common scenario in ocean research: many scientists annotate images with a particular target organism in mind and ignore everything else.
