@@ -1,4 +1,4 @@
-# tre-ces
+# tre-ces-example
 Containers for testing the TRE Container Execution Service.
 
 Use case: Training an object detection model for the [Fathom24 Kaggle competition](https://www.kaggle.com/competitions/fathomnet2024).
