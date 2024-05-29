@@ -8,5 +8,5 @@ COPY ./src/copy_data.sh /scratch/copy_data.sh
 
 RUN chmod u+x /scratch/copy_data.sh
 
-CMD sh ./scratch/copy_data.sh
+CMD sh /scratch/copy_data.sh
 
