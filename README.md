@@ -20,3 +20,13 @@ echo $CR_PAT | docker login ghcr.io -u <username> --password-stdin
 docker build -t ghcr.io/karacolada/tre-ces/<container_name>:<container_tag> -f docker/<path_to>/Dockerfile . 
 docker push ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
 ```
+
+In the SH:
+
+```bash
+sudo ces-pull <user> <token> ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+# no GPU, blocking
+ces-run ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+# with GPU, blocking
+ces-gpu-run ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+```

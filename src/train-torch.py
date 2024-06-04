@@ -1,3 +1,5 @@
+# adapted from https://medium.com/fullstackai/how-to-train-an-object-detector-with-your-own-coco-dataset-in-pytorch-319e7090da5
+
 import os
 import torch
 import pandas as pd
@@ -115,7 +117,7 @@ def collate_fn(batch):  # needed for dictionary data
     return tuple(zip(*batch))
 
 def get_model_instance_segmentation(num_classes):
-    # load an instance segmentation model pre-trained pre-trained on COCO
+    # load an instance segmentation model
     model = models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
