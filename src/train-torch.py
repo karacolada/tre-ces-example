@@ -10,6 +10,9 @@ import json
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils, models
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection import FasterRCNN
+from torchvision.models.detection.rpn import AnchorGenerator
+
 
 DATA_JSON = os.environ.get("DATA_JSON", "../data/train.json")
 DATA_IMAGES_DIR = os.environ.get("DATA_IMAGES", "../data/train")
@@ -116,13 +119,26 @@ class ToTensor(object):
 def collate_fn(batch):  # needed for dictionary data
     return tuple(zip(*batch))
 
-def get_model_instance_segmentation(num_classes):
+def get_model_instance_segmentation(num_classes, load_pretrained_backbone=False):
+    # CANNOT do this since this attempts to download ResNet50
     # load an instance segmentation model
-    model = models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
+    # model = models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
     # get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    #in_features = model.roi_heads.box_predictor.cls_score.in_features
     # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    #model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+
+    backbone = models.resnet50(pretrained=False)
+    if load_pretrained_backbone:
+        backbone.load_state_dict(torch.load('resnet50.pth'))
+    else:
+        backbone = torch.nn.Sequential(*list(backbone.children())[:-2])
+        # number of output channgels is 2048 for ResNet50
+        backbone.out_channels = 2048
+
+    # put the pieces together inside a FasterRCNN model
+    model = FasterRCNN(backbone,
+                       num_classes=num_classes)   
 
     return model
 

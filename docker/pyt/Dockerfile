@@ -7,6 +7,7 @@ COPY ./src/requirements_no_torch.txt /src/requirements.txt
 RUN pip install -r /src/requirements.txt
 
 COPY ./src/train-torch.py /src
+COPY ./src/resnet50.pth /src
 
 ENV DATA_JSON="/safe_data/kmoraw-gpu/ocean_data/ocean_data.json"
 ENV DATA_IMAGES="/safe_data/kmoraw-gpu/ocean_data/ocean_images"
