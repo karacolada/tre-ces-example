@@ -128,7 +128,7 @@ def get_model_instance_segmentation(num_classes, load_pretrained_backbone=False)
     # replace the pre-trained head with a new one
     #model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
-    backbone = models.resnet50(pretrained=False)
+    backbone = models.resnet50(weights=None)
     if load_pretrained_backbone:
         backbone.load_state_dict(torch.load('resnet50.pth'))
     else:
@@ -136,9 +136,13 @@ def get_model_instance_segmentation(num_classes, load_pretrained_backbone=False)
         # number of output channgels is 2048 for ResNet50
         backbone.out_channels = 2048
 
+    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
+                                       aspect_ratios=((0.5, 1.0, 2.0),))
+
     # put the pieces together inside a FasterRCNN model
     model = FasterRCNN(backbone,
-                       num_classes=num_classes)   
+                       num_classes=num_classes,
+                       rpn_anchor_generator=anchor_generator)   
 
     return model
 
