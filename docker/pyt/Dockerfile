@@ -14,5 +14,3 @@ ENV DATA_IMAGES="/safe_data/kmoraw-gpu/ocean_data/ocean_images"
 ENV TRAIN_OUTPUT="/safe_outputs"
 
 CMD ["python3", "/src/train-torch.py"]
-
-
