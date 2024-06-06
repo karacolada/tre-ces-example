@@ -24,9 +24,9 @@ docker push ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
 In the SH:
 
 ```bash
-sudo ces-pull <user> <token> ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+sudo ces-pull <user> <token> ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
 # no GPU, blocking
-ces-run ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+ces-run ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
 # with GPU, blocking
-ces-gpu-run ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+ces-gpu-run ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
 ```
