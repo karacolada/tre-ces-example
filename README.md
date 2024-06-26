@@ -68,10 +68,11 @@ Later sections cover how these directories should be used for different workflow
 ###### About `/scratch`
 
 Currently, temporary files can also be written into any directory in the container file system.
-However, we would encourage the use of `/scratch` instead, mainly for two reasons:
+However, we would encourage the use of `/scratch` instead, mainly for three reasons:
 
-1. In the future, write access to the container file system might be further restricted for security reasons. Writing only to `/scratch` at runtime is more future-proof.
-2. Using `/scratch` can be more efficient, as we are able to map it to high-performing hardware.
+1. In the future, write access to the container file system might be prevented for security reasons. Writing only to `/scratch` at runtime is therefore future-proof.
+2. The space available on the container’s internal file system is limited compared to the space available on `/scratch`. 
+3. Using `/scratch` can be more efficient if the service is able to mount it on high-performing storage devices.
 
 ### Making a workflow container-ready
 
@@ -88,6 +89,74 @@ To adapt existing workflows for containerisation, you need to answer a handful o
 5. When does my machine communicate with the internet? The Safe Haven doesn't have access to the internet, and containers are no exception. To start with, you could try running your application while switching of your machine's internet connection. You might have previously downloaded models into the cache though - this is where local testing of the container will help. Anything that needs to be downloaded from the internet has to be provided and packaged with the container.
 
 > Containers usually run a Linux-based operating system, and the Safe Haven assumes as much. Base images are often more sophisticated than a bare-metal operating system though, so familiarity with Linux is rarely required.
+
+For a comprehensive overview of Docker, take a look at their [guides](https://docs.docker.com/guides/).
+We will not go into all details here. 
+
+A container is specified using a Dockerfile: a series of instructions defining the environment.
+The full list of available commands can be found in the [Dockerfile reference](https://docs.docker.com/reference/dockerfile/).
+
+#### Base image
+
+Your container should be built from a base image.
+A base image is essentially a container specification someone else has already put together.
+Ideally, you'll want to pick a base image that already has a lot of your software's requirements installed (so you have less work),
+but not too many things you don't need (so the container doesn't become unnecessarily large and unwieldy).
+
+A few recommendations:
+- For simple operations such as running a few bash scripts, copying files etc., [`alpine`](https://hub.docker.com/_/alpine/) is a good choice. It is light-weight but contains most common Linux utilities.
+- For a general multi-purpose container, you might consider the [`ubuntu`](https://hub.docker.com/_/ubuntu) image. However, a container shouldn't usually be generic or have multiple purposes, so it is unlikely that `ubuntu` is the best choice for your application.
+- For Python applications, consider choosing the [`python`](https://hub.docker.com/_/python) base image. It has Python's standard libraries installed, as well as `pip`.
+- For more specific software stacks, have a look at [DockerHub](https://hub.docker.com/) - look out for images marked as *trusted content*. For example, there are base images for PyTorch and TensorFlow, but also for databases such as MariaDB and MySQL.
+
+Base images have version tags.
+Defining them in your Dockerfile is optional - if you omit the tag, the latest version will be pulled.
+This can lead to unexpected behaviour when software and images are updated, so it's best to explicitly state the image version.
+
+> Containers usually run a Linux-based operating system, and the TRE Container Execution Service assumes as much. Base images are often more sophisticated than a bare-metal operating system though, so familiarity with Linux is rarely required.
+
+Define the base image in the Dockerfile, e.g.
+
+```dockerfile
+FROM python:3
+```
+
+#### File structure
+
+As explained [above](#file-structure), several directories will be mounted into your container at runtime.
+To make the file structure obvious, create the directories in your Dockerfile.
+However, because these directories are mounted at run time, you should not place any files into them at build time.
+Anything you place into those directories at build time will be overwritten by the mounted directories at run time.
+
+Instead, you should place any files in a separate directory, for example `/src`.
+
+```dockerfile
+FROM python:3
+
+RUN mkdir /safe_data /safe_outputs /scratch
+RUN mkdir /src
+```
+
+--------
+
+```dockerfile
+FROM python:3
+
+RUN mkdir /safe_data /safe_outputs /scratch
+RUN mkdir /src
+
+COPY ./src/requirements.txt /src/requirements.txt
+RUN pip install -r /src/requirements.txt
+
+COPY ./src/train-torch.py /src
+COPY ./src/resnet50.pth /src
+
+ENV DATA_JSON="/safe_data/kmoraw-gpu/ocean_data/ocean_data.json"
+ENV DATA_IMAGES="/safe_data/kmoraw-gpu/ocean_data/ocean_images"
+ENV TRAIN_OUTPUT="/safe_outputs"
+
+CMD ["python3", "/src/train-torch.py"]
+```
 
 ### Building and pushing a container
 
@@ -122,6 +191,6 @@ ces-gpu-run ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
 ### Running containers in the SH
 
 :construction: TODOs:
-- [ ] who can run a container - researchers vs RCs
+- [ ] who can run a container - researchers vs RCs: this is up for discussion
 - [ ] interim solution
 - [ ] Open OnDemand
