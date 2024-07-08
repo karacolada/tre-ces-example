@@ -267,3 +267,19 @@ ces-gpu-run ghcr.io/<namespace>/<container_name>:<container_tag>
 ## Example use case
 
 :construction:
+
+For illustrative purposes, this repository contains an example use case for containerising an ML workflow for the TRE container execution service.
+The task is to train an object detection model on the [Fathom24](https://www.kaggle.com/competitions/fathomnet2024) image dataset.
+
+We started out with a Jupyter notebook, [`explore.ipynb`](./src/explore.ipynb).
+This is interactive and thus not suitable for submitting it the TRE CES in a container.
+
+Instead, we copied all code needed for training a model into a standard Python script, [`train-torch.py`](./src/train-torch.py).
+To avoid hard-coded data paths that don't work in the Safe Haven, we've added the use of environment variables to that script [lines 17-19](./src/train-torch.py#L17).
+The data paths default to the ones in the local environment but can be adjusted to point to e.g. `/safe_data`.
+
+We'll need to define the work environment for the container, so any packages that are imported at the beginning of the training script are listed in [`requirements.txt`](./src/requirements.txt).
+We could now choose [`python`](https://hub.docker.com/_/python/) as the base image, as that already comes with the specified Python version and `pip`.
+Alternatively, as we are using PyTorch, we could use a more specific base image that comes with the required PyTorch packages already installed: [`pytorch/pytorch`](https://hub.docker.com/r/pytorch/pytorch/). That way, we can shorten the requirements file: [`requirements_no_torch.txt`](./src/requirements_no_torch.txt).
+Moreover, as we know that we want to run this code on the NVIDIA GPUs available in the Safe Haven for our project, we could use an even more specific base image provided by NVIDIA themselves: [`nvcr.io/nvidia/pytorch`](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch).
+
