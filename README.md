@@ -12,11 +12,13 @@ Use case: Training an object detection model for the [Fathom24 Kaggle competitio
 
 :construction: GH actions will eventually be used for CI/CD. In the meantime, build locally and push to this repository's CR instead, as described below.
 
-## Guidance
+## General guidance
 
 The National Safe Haven provides tools that allow researchers to run their analyses using containers.
 Rather than asking system administrators to install software in specific VMs after acquiring approval from the research coordinator (RC),
 researchers can package any software requirements in a container and run it in a safe, isolated manner.
+
+**Scope:** This guidance is intended to help reframe existing software for container execution. As such, it is comparatively light on technical detail. For users familiar with containers, or as further reading, we recommend [EPCC's container build guide](https://github.com/EPCCed/tre-container-samples/blob/main/docs/container-build-guide.md#3-building-in-ci) which collects best practices and hints.
 
 ### Background
 
@@ -217,37 +219,51 @@ CMD ["python3", "/src/train-torch.py"]
 
 ### Building and pushing a container
 
-:construction: TODOs:
-- [ ] what it means to build
-- [ ] layers
-- [ ] rebuilding when changes are made
+Containers are built outside the Safe Haven, either locally or using Continuous Integration tools like GitHub actions.
+Using CI tools is recommended as it will increase the transparency of your software, which will help your research coordinator during the review process.
+The container then needs to be pushed to the GitHub container registry.
+From there, it is available to be run in the Safe Haven through the provided tooling.
 
-#### Manual & local
+Whenever you make a change to your software, be it adding new files, updating a dependency or removing a line from source code, the container needs to be re-built and pushed again.
+Most tools make use of container layers to speed up this process.
+Roughly speaking, each line in the Dockerfile is translated into a layer at build time, and layers are stacked on top of each other.
+When you make a change to one of those layers, that layer and any consecutive layers will need to re-build, whereas any layers beneath it are reused from cache.
+This is an automated process, you will not need to manage it yourself.
+However, it helps to structure the Dockerfile in a way that layers that might change frequently are positioned towards the end of the file.
+That way, fewer layers will have to be rebuilt, speeding up build as well as push time.
+
+#### Local, manual build and push
+
+To build and push locally, you will require a GitHub access token. Follow [the documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
 ```bash
 export CR_PAT=<your-token>
 echo $CR_PAT | docker login ghcr.io -u <username> --password-stdin
-docker build -t ghcr.io/karacolada/tre-ces/<container_name>:<container_tag> -f docker/<path_to>/Dockerfile . 
-docker push ghcr.io/karacolada/tre-ces/<container_name>:<container_tag>
+docker build -t ghcr.io/<namespace>/<container_name>:<container_tag> -f docker/<path_to>/Dockerfile . 
+docker push ghcr.io/<namespace>/<container_name>:<container_tag>
 ```
 
-In the SH:
-
-```bash
-sudo ces-pull <user> <token> ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
-# no GPU, blocking
-ces-run ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
-# with GPU, blocking
-ces-gpu-run ghcr.io/karacolada/tre-ces-example/<container_name>:<container_tag>
-```
+If your code is in a repository on GitHub, `<namespace>` should be your repository's ID (for example `karacolada/tre=ces-example` for this repository).
+Otherwise, you might use your user's namespace instead.
 
 #### Automated
 
-:construction: GH actions or other CI/CD tools
+:construction: GH actions or other CI/CD tools, see [guidance](https://github.com/EPCCed/tre-container-samples/blob/main/docs/container-build-guide.md#3-building-in-ci).
 
 ### Running containers in the SH
 
-:construction: TODOs:
-- [ ] who can run a container - researchers vs RCs: this is up for discussion
-- [ ] interim solution
-- [ ] Open OnDemand
+From within the Safe Haven, you or your RC can then run your container using the OpenOnDemand interface.
+This is currently still under development.
+In the interim, you can run
+
+```bash
+sudo ces-pull <user> <token> ghcr.io/<namespace>/<container_name>:<container_tag>
+# no GPU, blocking
+ces-run ghcr.io/<namespace>/<container_name>:<container_tag>
+# with GPU, blocking
+ces-gpu-run ghcr.io/<namespace>/<container_name>:<container_tag>
+```
+
+## Example use case
+
+:construction:
