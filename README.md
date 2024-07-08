@@ -76,19 +76,15 @@ However, we would encourage the use of `/scratch` instead, mainly for three reas
 
 ### Making a workflow container-ready
 
-:construction: **TODO:** rewrite as sections with more detail, and order for Dockerfile specification. Start with an explanation of a Dockerfile.
-
-If starting from scratch, we would recommend using our :construction: template repository as a starting point. 
+If starting from scratch, we would recommend using our [template repository](https://github.com/EPCCed/tre-container-samples) as a starting point. 
 This should make container building very smooth.
 
 To adapt existing workflows for containerisation, you need to answer a handful of questions:
 1. What files do I need to run my application, and where does the application expect them? Collect any scripts, data, etc. that your application needs. You won't be able to quickly copy them into the container after it has been built. Less is more here - don't include things you don't need as those will unnecessarily increase build and load time. Decide what is needed at build time and what is needed at runtime.
 2. Can my application run unsupervised? You won't be able to interact with the running application.
-3. Which steps of my workflow do I want to reuse, and how can I configure those? Switch from command line arguments to configuration files - you can change those in `/safe_data` and have the container read them at runtime. Split your workflow into modules, for example if you want to run an analysis multiple times but data transformation needs to run only once. (DRY)
+3. Which steps of my workflow do I want to reuse, and how can I configure those? Switch from command line arguments to configuration files - you can change those in `/safe_data` and have the container read them at runtime. Split your workflow into modules, for example if you want to run an analysis multiple times but data transformation needs to run only once - **D**on't **R**epeat **Y**ourself.
 4. If I wanted to run this application on a new machine, what would I need to prepare? This will tell you what your software requirements are, and help to figure out how to install them in a container.
 5. When does my machine communicate with the internet? The Safe Haven doesn't have access to the internet, and containers are no exception. To start with, you could try running your application while switching of your machine's internet connection. You might have previously downloaded models into the cache though - this is where local testing of the container will help. Anything that needs to be downloaded from the internet has to be provided and packaged with the container.
-
-> Containers usually run a Linux-based operating system, and the Safe Haven assumes as much. Base images are often more sophisticated than a bare-metal operating system though, so familiarity with Linux is rarely required.
 
 For a comprehensive overview of Docker, take a look at their [guides](https://docs.docker.com/guides/).
 We will not go into all details here. 
@@ -121,7 +117,7 @@ Define the base image in the Dockerfile, e.g.
 FROM python:3
 ```
 
-#### File structure
+#### Code, data, and other files
 
 As explained [above](#file-structure), several directories will be mounted into your container at runtime.
 To make the file structure obvious, create the directories in your Dockerfile.
@@ -130,14 +126,75 @@ Anything you place into those directories at build time will be overwritten by t
 
 Instead, you should place any files in a separate directory, for example `/src`.
 
+It's best to package any files your software requires into the container instead of relying e.g. on `/safe_data`.
+The container needs to be tested outside the Safe Haven environment, and if it heavily relies on a specific file structure in mapped directories,
+the behaviour in the different development environments will be inconsistent.
+
+Consider *all* files your software requires to run smoothly for all intended applications, and remember that you don't have access to the internet from within the Safe Haven.
+Any models, data, licenses, source code, etc. should be copied into the container at build time, using your Dockerfile.
+
 ```dockerfile
 FROM python:3
 
 RUN mkdir /safe_data /safe_outputs /scratch
 RUN mkdir /src
+
+COPY ./src/train-torch.py /src
+COPY ./src/resnet50.pth /src
 ```
 
---------
+#### Dependencies
+
+Store any dependencies of your software in a machine-readable file.
+This is good practice in software development, makes it easier to keep it up to date and to containerise it.
+For example, you could use a `requirements.txt` file if your software is built in Python:
+
+```dockerfile
+FROM python:3
+
+RUN mkdir /safe_data /safe_outputs /scratch
+RUN mkdir /src
+
+COPY ./src/requirements.txt /src/requirements.txt
+RUN pip install -r /src/requirements.txt
+```
+
+#### Application configuration
+
+Files that often require changes to run for different use cases - for example, hardcoded data loading paths or options - should be refactored to use configuration files.
+The configuration file would then reside in `/safe_data` and be accessible from within the container.
+Otherwise, you will need to rebuild, push and pull the container for every change in configuration as files within the containers need to be updated.
+This is a lengthy process and consumes unnecessary amounts of storage so should be avoided.
+
+There are many approaches to configuration files, and we encourage you to look for tools that are commonly used in your community.
+A comprehensive overview of the different options when using Python is provided in [this blog post](https://martin-thoma.com/configuration-files-in-python/).
+
+You can also define environment variables from within your Dockerfile.
+This can be useful to make your application work both in a local development environment and a container - you would set the variables to a different value in your local environment and the application simply reads those in at runtime.
+Of course, if you need to change these, you will need to rebuild the container, so this approach is not a great option for reusing a container for multiple, differently configured runs.
+
+```dockerfile
+FROM python:3
+
+RUN mkdir /safe_data /safe_outputs /scratch
+RUN mkdir /src
+
+COPY ./src/requirements.txt /src/requirements.txt
+RUN pip install -r /src/requirements.txt
+
+COPY ./src/train-torch.py /src
+COPY ./src/resnet50.pth /src
+
+ENV DATA_JSON="/safe_data/kmoraw-gpu/ocean_data/ocean_data.json"
+ENV DATA_IMAGES="/safe_data/kmoraw-gpu/ocean_data/ocean_images"
+ENV TRAIN_OUTPUT="/safe_outputs"
+```
+
+#### Startup command
+
+You will not be able to interact with the container at runtime, so as a final step, the Dockerfile should define a startup command.
+When you submit a job in the Safe Haven to run your container, it will run this startup command in the container.
+The container will be stopped when the command has terminated or the container runtime has exceeded the maximum runtime allowed for a job in the Safe Haven.
 
 ```dockerfile
 FROM python:3
