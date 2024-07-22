@@ -7,16 +7,13 @@ from skimage import io, transform
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import argparse
+import yaml
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils, models
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-
-
-DATA_JSON = os.environ.get("DATA_JSON", "../data/train.json")
-DATA_IMAGES_DIR = os.environ.get("DATA_IMAGES", "../data/train")
-TRAIN_OUTPUT_DIR = os.environ.get("TRAIN_OUTPUT", ".")
 
 class Fathom24Dataset(Dataset):
     """Fathom2024 dataset."""
@@ -146,9 +143,12 @@ def get_model_instance_segmentation(num_classes, load_pretrained_backbone=False)
 
     return model
 
-if __name__ == "__main__":
-    transformed_f24_dataset = Fathom24Dataset(json_file=DATA_JSON,
-                                              root_dir=DATA_IMAGES_DIR,
+def main(config_path):
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+
+    transformed_f24_dataset = Fathom24Dataset(json_file=config["data"]["json"],
+                                              root_dir=config["data"]["images"],
                                               transform=transforms.Compose([
                                                 Rescale((256, 256)),
                                                 ToTensor()
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
 
     # log file
-    log_f = open(os.path.join(TRAIN_OUTPUT_DIR, "log"), "w")
+    log_f = open(os.path.join(config["logging"]["path"], "log"), "w")
     log_f.write("####################### Device #######################\n")
     log_f.write(f"{device}\n")
     log_f.write("######################################################\n")
@@ -196,4 +196,10 @@ if __name__ == "__main__":
     log_f.close()
 
     # save trained model
-    torch.save(model.state_dict(), os.path.join(TRAIN_OUTPUT_DIR, "fathom24_trained_model.pth"))
+    torch.save(model.state_dict(), os.path.join(config["model"]["output"], "fathom24_trained_model.pth"))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="args.py", description="Template for using arguments in python.")
+    parser.add_argument('--config', default="../config.yml", help="path to config file")
+    args = parser.parse_args()
+    main(args.config)

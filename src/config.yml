@@ -1,0 +1,13 @@
+train:
+  batch_size: 4
+
+model:
+  weights: /usr/app/models/resnet50.pth
+  output: /safe_outputs
+
+logging:
+  path: /safe_outputs
+
+data:
+  json: /safe_data/kmoraw-gpu/ocean_data/ocean_data.json
+  images_dir: /safe_data/kmoraw-gpu/ocean_data/ocean_images
