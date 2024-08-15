@@ -1,0 +1,136 @@
+name: CI Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  REPOSITORY: ghcr.io/${{ secrets.GHCR_NAMESPACE }}
+  HADOLINT_IMAGE: ghcr.io/hadolint/hadolint:latest
+  HADOLINT_CONFIG: configs/hadolint.yaml
+  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:latest
+  TRIVY_MISCONFIG_CONFIG: configs/trivy-misconfig-dockerfile.yaml
+  TRIVY_IMAGE_SCAN_CONFIG: configs/trivy-image-scan.yaml
+  TRIVY_OUT_PATH: /home/eidf147/shared/trivy_reports
+
+jobs:
+  hadolint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [data, pyt, nv-pyt, piped-pyt]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Hadolint
+        run: |
+          set -euxo pipefail
+          cd "docker/${{ matrix.package }}"
+          docker run \
+            --pull=always \
+            --rm \
+            -i \
+            -v $(pwd):/repo \
+            "${{ env.HADOLINT_IMAGE }}" \
+              hadolint \
+              --config "/repo/${{ env.HADOLINT_CONFIG }}" \
+              - < Dockerfile
+
+  trivy-misconfig:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [data, pyt, nv-pyt, piped-pyt]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy Misconfig
+        run: |
+          set -euxo pipefail
+          cd "docker/${{ matrix.package }}"
+          if [ ! -f "${{ env.TRIVY_MISCONFIG_CONFIG }}" ]; then
+            echo "Error: Missing ${{ env.TRIVY_MISCONFIG_CONFIG }}"
+            exit 1
+          fi
+          docker run \
+            --pull=always \
+            --rm \
+            -v $HOME/.cache/trivy:/root/.cache \
+            -v $(pwd):/repo \
+            "${{ env.TRIVY_IMAGE }}" \
+              config \
+              --config "/repo/${{ env.TRIVY_MISCONFIG_CONFIG }}" \
+              "/repo/Dockerfile"
+
+  build_and_release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [data, pyt, nv-pyt, piped-pyt]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ secrets.GHCR_NAMESPACE }} --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          set -euxo pipefail
+          cd "docker/${{ matrix.package }}"
+          version="$(grep _VERSION= Dockerfile | cut -d'"' -f2)"
+          image_revision="$(grep _IMAGE_REVISION= Dockerfile | cut -d'"' -f2)"
+          tag="${version}-${image_revision}"
+          docker build . --tag "${{ env.REPOSITORY }}/${{ matrix.package }}:${tag}" --tag "${{ env.REPOSITORY }}/${{ matrix.package }}:latest"
+          echo "IMAGE=${{ env.REPOSITORY }}/${{ matrix.package }}:${tag}" >> ../build.env
+          echo "tag=${tag}" >> ../build.env
+          docker push "${{ env.REPOSITORY }}/${{ matrix.package }}:latest"
+          docker push "${{ env.REPOSITORY }}/${{ matrix.package }}:${tag}"
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_NAMESPACE: ${{ secrets.GHCR_NAMESPACE }}
+
+      - name: Save build environment
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-env
+          path: ../build.env
+
+  trivy-scan:
+    runs-on: ubuntu-latest
+    needs: build_and_release
+    strategy:
+      matrix:
+        package: [data, pyt, nv-pyt, piped-pyt]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download build environment
+        uses: actions/download-artifact@v3
+        with:
+          name: build-env
+          path: .
+
+      - name: run trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          # See https://github.com/aquasecurity/trivy-action?tab=readme-ov-file#inputs
+          image-ref: "${{ env.img }}:${{ env.tag }}"
+          format: 'github'
+          output: "${{ env.img }}-${{ env.tag }}-dependency-results.sbom.json"
+          github-pat: "${{ secrets.GITHUB_TOKEN }}"
+          severity: 'MEDIUM,CRITICAL,HIGH'
+          scanners: "vuln"
+      - name: upload trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'trivy-sbom-report'
+          path: 'dependency-results.sbom.json'
+  

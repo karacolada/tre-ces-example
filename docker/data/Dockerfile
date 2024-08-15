@@ -1,5 +1,7 @@
 FROM alpine:3.20.0
 
+ARG DATA_VERSION="1"
+
 RUN mkdir /safe_data /safe_outputs /scratch
 RUN mkdir /data
 

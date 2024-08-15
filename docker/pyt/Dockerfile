@@ -1,5 +1,7 @@
 FROM pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime
 
+ARG PYT_VERSION="2.2.2-1"
+
 RUN mkdir /safe_data /safe_outputs /scratch
 
 WORKDIR /usr/app
@@ -12,4 +14,4 @@ COPY ./src/train-torch.py src/
 COPY ./models/resnet50.pth models/
 COPY ./src/config.yml src/
 
-CMD ["python3", "/src/train-torch.py --config /usr/app/src/config.yml"]
+CMD ["python3", "/usr/app/src/train-torch.py --config /usr/app/src/config.yml"]

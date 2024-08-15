@@ -243,7 +243,7 @@ docker build -t ghcr.io/<namespace>/<container_name>:<container_tag> -f docker/<
 docker push ghcr.io/<namespace>/<container_name>:<container_tag>
 ```
 
-If your code is in a repository on GitHub, `<namespace>` should be your repository's ID (for example `karacolada/tre=ces-example` for this repository).
+If your code is in a repository on GitHub, `<namespace>` should be your repository's ID (for example `karacolada/tre-ces-example` for this repository).
 Otherwise, you might use your user's namespace instead.
 
 #### Automated
