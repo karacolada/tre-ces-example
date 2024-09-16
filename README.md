@@ -10,8 +10,6 @@ Use case: Training an object detection model for the [Fathom24 Kaggle competitio
   - Python image [`docker/piped-pyt`](./docker/piped-pyt/)
   - Tensorflow image (:construction: TODO)
 
-:construction: GH actions will eventually be used for CI/CD. In the meantime, build locally and push to this repository's CR instead, as described below.
-
 ## General guidance
 
 The National Safe Haven provides tools that allow researchers to run their analyses using containers.
@@ -248,7 +246,7 @@ Otherwise, you might use your user's namespace instead.
 
 #### Automated
 
-:construction: GH actions or other CI/CD tools, see [guidance](https://github.com/EPCCed/tre-container-samples/blob/main/docs/container-build-guide.md#3-building-in-ci).
+It is helpful to build containers using automation tools like GitHub actions, see [guidance](https://github.com/EPCCed/tre-container-samples/blob/main/docs/container-build-guide.md#3-building-in-ci).
 
 ### Running containers in the SH
 
